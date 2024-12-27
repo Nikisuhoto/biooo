@@ -1,5 +1,5 @@
 import scrapy
-
+import csv
 
 class BioooSpider(scrapy.Spider):
     name = 'biooospider'
@@ -31,21 +31,30 @@ class BioooSpider(scrapy.Spider):
                 }
             )
 
-
     def parse_detail(self, response):
         page_title = response.css('h1::text').get()
 
+        other_names = response.css("strong::text").get()
+
+        if other_names:
+            other_names = other_names.strip()
+            if not other_names:
+                other_names = None
+
         description = response.css('p::text').getall()
 
-        full_description = ' '.join([text.strip() for text in description if text.strip()])
+        full_description = ' '.join([text.strip().replace('\u00A0', ' ') for text in description if text.strip()])
 
-        # Резултата
-        yield {
+        res_data = {
             'page_url': response.url,
             'page_title': page_title,
-            'description': full_description,
-            # 'details': details,
-            # 'subsections': subsections,
-            # 'link_title': link_title,
-            # 'link_text': link_text
+            'other_names': other_names,
+            'description': full_description
         }
+
+        with open('biooo_output.csv', 'a', encoding='utf-8', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(
+                [res_data['page_url'], res_data['page_title'], res_data['other_names'], res_data['description']])
+
+        yield res_data
